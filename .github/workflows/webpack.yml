@@ -1,4 +1,4 @@
-name: Mobile APK Auto Build 🚀
+name: Mobile APK Auto Build
 
 on:
   push:
@@ -25,24 +25,21 @@ jobs:
         with:
           node-version: '18'
 
-      # 🔥 التعديل الفوري: الدخول إلى مجلد frontend مباشرة دون مسار زائد
       - name: Convert Web To Android Framework
         run: |
           cd frontend
           npm install
           npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "Voice Chat App" "com.voicechat.app" --web-dir=dist
-          npm run build
+          npx vite build
           npx cap add android
           npx cap sync android
 
-      # بناء ملف الـ APK النهائي
       - name: Compile Gradle Release APK
         run: |
           cd frontend/android
           ./gradlew assembleRelease
 
-      # رفع ملف الـ APK بأحدث إصدار v4 لتنزيله
       - name: Share APK File
         uses: actions/upload-artifact@v4 
         with:
