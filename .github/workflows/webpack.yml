@@ -31,6 +31,12 @@ jobs:
           npm install --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
+      - name: Fix Config Files Format
+        run: |
+          cd frontend
+          [ -f postcss.config.js ] && mv postcss.config.js postcss.config.cjs || true
+          [ -f tailwind.config.js ] && mv tailwind.config.js tailwind.config.cjs || true
+
       - name: Build Web Application with Vite
         run: |
           cd frontend
@@ -43,12 +49,6 @@ jobs:
           if [ ! -f capacitor.config.ts ]; then
             npx cap init "Voice Chat App" "com.voicechat.app" --web-dir=dist
           fi
-
-      - name: Fix Config Files Format
-        run: |
-          cd frontend
-          [ -f postcss.config.js ] && mv postcss.config.js postcss.config.cjs || true
-          [ -f tailwind.config.js ] && mv tailwind.config.js tailwind.config.cjs || true
 
       - name: Add Android Platform
         run: |
