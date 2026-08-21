@@ -25,32 +25,72 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Convert Web To Android Framework
+      - name: Install Frontend Dependencies
         run: |
           cd frontend
           npm install --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
-          npx cap init "Voice Chat App" "com.voicechat.app" --web-dir=dist
-          
-          # Fix Module Error by renaming config files to CommonJS format
+
+      - name: Build Web Application with Vite
+        run: |
+          cd frontend
+          export TSC_COMPILE_ON_ERROR=true
+          npx vite build --emptyOutDir
+
+      - name: Initialize Capacitor
+        run: |
+          cd frontend
+          if [ ! -f capacitor.config.ts ]; then
+            npx cap init "Voice Chat App" "com.voicechat.app" --web-dir=dist
+          fi
+
+      - name: Fix Config Files Format
+        run: |
+          cd frontend
           [ -f postcss.config.js ] && mv postcss.config.js postcss.config.cjs || true
           [ -f tailwind.config.js ] && mv tailwind.config.js tailwind.config.cjs || true
-          
-          export TSC_COMPILE_ON_ERROR=true
-          npx vite build --emptyOutDir || true
-          
-          mkdir -p dist
-          npx cap add android || true
+
+      - name: Add Android Platform
+        run: |
+          cd frontend
+          npx cap add android || npx cap sync android
+
+      - name: Sync Capacitor with Android
+        run: |
+          cd frontend
           npx cap sync android
 
-      - name: Compile Gradle Release APK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-version: '34'
+
+      - name: Build Release APK
         run: |
           cd frontend/android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew clean assembleRelease --stacktrace --info
 
-      - name: Share APK File
+      - name: Verify APK Output
+        run: |
+          echo "=== Checking APK Files ==="
+          find frontend/android/app/build/outputs -name "*.apk" -type f
+          ls -lah frontend/android/app/build/outputs/apk/release/ || echo "Warning: Release directory not found"
+
+      - name: Upload APK to Artifacts
+        if: success()
         uses: actions/upload-artifact@v4 
         with:
           name: Voice-Chat-App-Mobile
-          path: frontend/android/app/build/outputs/apk/release/
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+
+      - name: Upload Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Logs-Debug
+          path: |
+            frontend/android/build/
+            frontend/android/app/build/
+          retention-days: 7
